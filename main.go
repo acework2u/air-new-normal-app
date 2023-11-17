@@ -1,76 +1,46 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"github.com/aws/aws-lambda-go/lambda"
-	_ "github.com/aws/aws-lambda-go/lambda"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	conf "Airnewnormal/config"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"log"
-	"os"
-	"time"
+	"net/http"
 )
-
-type AirIot struct {
-	DeviceSn  string    `bson:"device_sn" json:"device_sn"`
-	Timestamp time.Time `bson:"timestamp" json:"timestamp"`
-	Message   string    `bson:"message" json:"message"`
-}
 
 var (
-	ctx         context.Context
-	DBUrl       = os.Getenv("DB_URL")
-	client, err = mongo.Connect(context.Background(), options.Client().ApplyURI(DBUrl))
+	server *gin.Engine
 )
 
-//func EnvMongoURI() string {
-//	err := godotenv.Load()
-//
-//	if err != nil {
-//		fmt.Println("Error loading .env file")
-//		log.Fatal(err.Error())
-//		//return os.Getenv("DB_URL")
-//	}
-//
-//	return os.Getenv("DB_URL")
-//}
-
-func HandleRequest(ctx context.Context, iot *AirIot) (newId string, err2 error) {
-
-	if err != nil {
-		log.Panicln(err.Error())
-	}
-
-	query := bson.M{
-		"device_sn": iot.DeviceSn,
-		"timestamp": iot.Timestamp,
-		"message":   iot.Message,
-	}
-	defer client.Disconnect(ctx)
-	collection := client.Database("air_newnormal").Collection("airs_things")
-	cursor, err := collection.InsertOne(ctx, query)
-
-	if err != nil {
-		log.Println(err.Error())
-		return "", err
-	}
-	resp := fmt.Sprintf("%s", cursor.InsertedID)
-
-	return resp, nil
-
+func init() {
+	server = gin.Default()
 }
 
 func main() {
-	//airInfo := &AirIot{
-	//	DeviceSn:  "2306F01054323",
-	//	Timestamp: 1699938683409,
-	//	Message:   "Wpx7g3bvwr.skjfdfdokoofdof",
-	//}
+	config, _ := conf.LoadConfig(".")
+	startGinServer(config)
+}
 
-	//HandleRequest(ctx, airInfo)
+func startGinServer(cf conf.Config) {
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowOrigins = []string{cf.Origin}
+	corsConfig.AllowCredentials = true
+	corsConfig.AllowHeaders = []string{"Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With"}
+	server.Use(cors.New(corsConfig))
+	server.Use(gin.Recovery())
 
-	lambda.Start(HandleRequest)
+	server.NoRoute(func(ctx *gin.Context) {
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"code":    "PAGE_NOT_FOUND",
+			"message": "page not found",
+		})
+	})
+	router := server.Group("/api/v1")
+
+	router.GET("/healthchecker", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{"status": "success", "message": "OK"})
+	})
+
+	log.Fatal(server.Run(":8888"))
 
 }
