@@ -17,5 +17,12 @@ func NewAirsHandler(airIot airs.AirService) AirsHandler {
 }
 
 func (h *AirsHandler) GetIndoorVal(c *gin.Context) {
-	h.resp.Success(c, "success")
+
+	airList, err := h.airIot.AirThings()
+	if err != nil {
+		h.resp.BadRequest(c, err.Error())
+		return
+	}
+	
+	h.resp.Success(c, airList)
 }

@@ -4,6 +4,7 @@ import (
 	conf "Airnewnormal/config"
 	"Airnewnormal/domain/airs"
 	"Airnewnormal/handler"
+	"Airnewnormal/repository"
 	"Airnewnormal/routers"
 	"context"
 	"github.com/gin-contrib/cors"
@@ -33,7 +34,9 @@ func init() {
 
 	//Airs
 	airsThingsCollection = conf.GetCollection(mongoClient, "airs_things")
-	airService := airs.NewAirThingsService()
+	airsThingsRepo := repository.NewAirRepositoryDB(ctx, airsThingsCollection)
+
+	airService := airs.NewAirThingsService(airsThingsRepo)
 	airsHandler = handler.NewAirsHandler(airService)
 	AirsRouter = routers.NewAirsRouter(airsHandler)
 
