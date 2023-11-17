@@ -2,18 +2,44 @@ package main
 
 import (
 	conf "Airnewnormal/config"
+	"Airnewnormal/domain/airs"
+	"Airnewnormal/handler"
+	"Airnewnormal/routers"
+	"context"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/mongo"
 	"log"
 	"net/http"
 )
 
 var (
-	server *gin.Engine
+	server               *gin.Engine
+	airsThingsCollection *mongo.Collection
+	ctx                  context.Context
+	mongoClient          *mongo.Client
+
+	// Airs
+	airsHandler handler.AirsHandler
+	AirsRouter  routers.AirsRouter
 )
 
 func init() {
+
+	//load Env
+	envConf, _ := conf.LoadConfig(".")
+	//DB Connected
+	mongoClient = conf.ConnectDB(envConf.DBUrl)
+
+	//Airs
+	airsThingsCollection = conf.GetCollection(mongoClient, "airs_things")
+	airService := airs.NewAirThingsService()
+	airsHandler = handler.NewAirsHandler(airService)
+	AirsRouter = routers.NewAirsRouter(airsHandler)
+
+	ctx = context.TODO()
 	server = gin.Default()
+
 }
 
 func main() {
@@ -40,6 +66,9 @@ func startGinServer(cf conf.Config) {
 	router.GET("/healthchecker", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"status": "success", "message": "OK"})
 	})
+
+	//AirThings
+	AirsRouter.AirRoute(router)
 
 	log.Fatal(server.Run(":8888"))
 
