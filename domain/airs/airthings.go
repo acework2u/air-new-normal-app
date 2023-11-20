@@ -8,6 +8,19 @@ type AirNewNormal struct {
 	Timestamp time.Time   `json:"timestamp"`
 }
 
+type Filter struct {
+	DeviceSn string `json:"device_sn"`
+	StartAt  string `json:"start_at"`
+	EndAt    string `json:"end_at"`
+}
+
+type AirIAQReport struct {
+	DeviceSn string  `json:"deviceSn"`
+	Temp     float64 `json:"temp"`
+	SetTemp  float64 `json:"setTemp"`
+	Time     string  `json:"time"`
+}
+
 type IndoorInfo struct {
 	Power    string `json:"power,omitempty"`
 	Mode     string `json:"mode,omitempty"`
@@ -21,4 +34,5 @@ type IndoorInfo struct {
 
 type AirService interface {
 	AirThings() ([]*AirNewNormal, error)
+	AirThingsById(deviceSn string, fil *Filter) ([]*AirNewNormal, error)
 }

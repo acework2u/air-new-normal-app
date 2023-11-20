@@ -20,5 +20,5 @@ type Filter struct {
 
 type AirsRepository interface {
 	ReadAirIndoorVal() ([]*AirRawData, error)
-	ReadAirIndoorValId(deviceSn string) ([]*AirRawData, error)
+	ReadAirIndoorValId(deviceSn string, st string, end string) ([]*AirRawData, error)
 }

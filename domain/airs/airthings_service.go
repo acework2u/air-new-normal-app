@@ -38,6 +38,37 @@ func (s *airThingsService) AirThings() ([]*AirNewNormal, error) {
 
 	return airVal, nil
 }
+func (s *airThingsService) AirThingsById(sn string, filter *Filter) ([]*AirNewNormal, error) {
+
+	result := []*AirNewNormal{}
+
+	if len(sn) > 12 {
+
+		dbRs, err := s.airRepo.ReadAirIndoorValId(sn, filter.StartAt, filter.EndAt)
+
+		if err != nil {
+			return nil, err
+		}
+
+		for _, item := range dbRs {
+			rs := &AirNewNormal{
+				DeviceSn:  item.DeviceSn,
+				Message:   readMsg(item.Message),
+				Timestamp: item.Timestamp,
+			}
+
+			result = append(result, rs)
+		}
+
+	}
+
+	if len(result) > 0 {
+
+	}
+
+	return result, nil
+}
+
 func readMsg(msg string) *IndoorInfo {
 
 	airDecode, err := utils.GetClaimsFromToken(msg)
