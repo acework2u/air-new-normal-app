@@ -60,12 +60,13 @@ func (r *AirRepositoryDB) ReadAirIndoorValId(deviceSn string, st string, end str
 	//andStage := bson.D{{"$and", bson.D{{"timestamp", bson.D{{"$gte", stDate}}}}}}
 	//matchStage := bson.D{{"$match", bson.D{{"device_sn", deviceSn}}}}
 	matchStage := bson.D{{"$match", bson.D{{"device_sn", deviceSn}, {"$and", []bson.M{bson.M{"timestamp": bson.M{"$gte": stDate}}, bson.M{"timestamp": bson.M{"$lte": endDate}}}}}}}
+	sortStage := bson.D{{"$sort", bson.M{"timestamp": 1}}}
 	//matchStage := bson.D{{"$match", bson.D{{"device_sn", deviceSn}, {"$and", bson.D{{"timestamp", bson.M{"$gte": stDate}}}}}}}
 	//matchStage := bson.D{{"$match", bson.D{{"device_sn", ""}, {"$and", bson.D{{"timestamp", bson.D{{"$gte", fmt.Sprintf("ISODate('%v')", st)}}}}}}}}
 
 	//log.Println(matchStage)
 
-	cursor, err := r.airsThingsCollection.Aggregate(r.ctx, mongo.Pipeline{matchStage})
+	cursor, err := r.airsThingsCollection.Aggregate(r.ctx, mongo.Pipeline{matchStage, sortStage})
 	if err != nil {
 		return nil, err
 	}

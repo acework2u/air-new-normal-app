@@ -4,7 +4,9 @@ import (
 	"Airnewnormal/repository"
 	"Airnewnormal/utils"
 	"context"
+	"fmt"
 	"log"
+	"time"
 )
 
 type airThingsService struct {
@@ -38,7 +40,7 @@ func (s *airThingsService) AirThings() ([]*AirNewNormal, error) {
 
 	return airVal, nil
 }
-func (s *airThingsService) AirThingsById(sn string, filter *Filter) ([]*AirNewNormal, error) {
+func (s *airThingsService) AirThingsById(sn string, filter *Filter) ([]*AirReport, error) {
 
 	result := []*AirNewNormal{}
 
@@ -54,7 +56,7 @@ func (s *airThingsService) AirThingsById(sn string, filter *Filter) ([]*AirNewNo
 			rs := &AirNewNormal{
 				DeviceSn:  item.DeviceSn,
 				Message:   readMsg(item.Message),
-				Timestamp: item.Timestamp,
+				Timestamp: item.Timestamp.Local(),
 			}
 
 			result = append(result, rs)
@@ -62,11 +64,40 @@ func (s *airThingsService) AirThingsById(sn string, filter *Filter) ([]*AirNewNo
 
 	}
 
+	airReport := []*AirReport{}
 	if len(result) > 0 {
+
+		for _, k := range result {
+			air := &AirReport{
+				DeviceSn: k.DeviceSn,
+				IndVal:   IndoorVal{Power: k.Message.Power, Temp: k.Message.Temp, RoomTemp: k.Message.RoomTemp},
+				TimeAt:   fmt.Sprintf("%v", k.Timestamp),
+			}
+			airReport = append(airReport, air)
+		}
 
 	}
 
-	return result, nil
+	return airReport, nil
+}
+
+func powerVal(p string) int {
+
+	if p == "on" {
+		return 1
+	}
+
+	return 0
+}
+
+func readTime(tm time.Time) time.Time {
+
+	nt := fmt.Sprintf("%v", tm.Local())
+	fmt.Println("This tm =", tm)
+	fmt.Println("this nt = ", nt)
+	t, _ := time.Parse(time.RFC3339, fmt.Sprintf("%v", tm))
+	fmt.Println("This t = ", t)
+	return t
 }
 
 func readMsg(msg string) *IndoorInfo {
