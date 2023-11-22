@@ -5,7 +5,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"time"
+	"log"
 )
 
 type AirRepositoryDB struct {
@@ -46,25 +46,15 @@ func (r *AirRepositoryDB) ReadAirIndoorVal() ([]*AirRawData, error) {
 
 	return devices, nil
 }
-func (r *AirRepositoryDB) ReadAirIndoorValId(deviceSn string, st string, end string) ([]*AirRawData, error) {
+func (r *AirRepositoryDB) ReadAirIndoorValId(filter *Filter) ([]*AirRawData, error) {
 
-	// $match:{device_sn:"2306F01054324",$and:[{timestamp:{$gte:ISODate("2023-11-20")}},{timestamp:{$lte:ISODate("2023-11-21")}}]}
-	//	matchStage := bson.D{{"$match", bson.D{{"device_sn", deviceSn}}}}
-	//stDate := fmt.Sprintf("ISODate('%s')", st)
+	stDate := primitive.NewDateTimeFromTime(filter.StartDateAt)
+	endDate := primitive.NewDateTimeFromTime(filter.EndDateAt.AddDate(0, 0, 1))
 
-	date, _ := time.Parse("2006-01-02", st)
-	endAt, _ := time.Parse("2006-01-02", end)
+	matchStage := bson.D{{"$match", bson.D{{"device_sn", filter.DeviceSN}, {"$and", []bson.M{bson.M{"timestamp": bson.M{"$gte": stDate}}, bson.M{"timestamp": bson.M{"$lt": endDate}}}}}}}
+	sortStage := bson.D{{"$sort", bson.M{"timestamp": -1}}}
 
-	stDate := primitive.NewDateTimeFromTime(date)
-	endDate := primitive.NewDateTimeFromTime(endAt)
-	//andStage := bson.D{{"$and", bson.D{{"timestamp", bson.D{{"$gte", stDate}}}}}}
-	//matchStage := bson.D{{"$match", bson.D{{"device_sn", deviceSn}}}}
-	matchStage := bson.D{{"$match", bson.D{{"device_sn", deviceSn}, {"$and", []bson.M{bson.M{"timestamp": bson.M{"$gte": stDate}}, bson.M{"timestamp": bson.M{"$lte": endDate}}}}}}}
-	sortStage := bson.D{{"$sort", bson.M{"timestamp": 1}}}
-	//matchStage := bson.D{{"$match", bson.D{{"device_sn", deviceSn}, {"$and", bson.D{{"timestamp", bson.M{"$gte": stDate}}}}}}}
-	//matchStage := bson.D{{"$match", bson.D{{"device_sn", ""}, {"$and", bson.D{{"timestamp", bson.D{{"$gte", fmt.Sprintf("ISODate('%v')", st)}}}}}}}}
-
-	//log.Println(matchStage)
+	log.Println(matchStage)
 
 	cursor, err := r.airsThingsCollection.Aggregate(r.ctx, mongo.Pipeline{matchStage, sortStage})
 	if err != nil {

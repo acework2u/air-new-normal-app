@@ -54,7 +54,7 @@ func startGinServer(cf conf.Config) {
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowOrigins = []string{cf.Origin}
 	corsConfig.AllowCredentials = true
-	corsConfig.AllowHeaders = []string{"Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With,grafana backend/server"}
+	corsConfig.AllowHeaders = []string{"Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With,grafana backend/server,X-Grafana-Org-Id"}
 	server.Use(cors.New(corsConfig))
 	server.Use(gin.Recovery())
 

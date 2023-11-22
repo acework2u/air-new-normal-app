@@ -15,7 +15,8 @@ func NewAirsRouter(airsHandler handler.AirsHandler) AirsRouter {
 
 func (r *AirsRouter) AirRoute(rg *gin.RouterGroup) {
 	router := rg.Group("air-iot")
-	router.GET("/", r.airHandler.GetIndoorVal)
-	//router.GET("/:sn", r.airHandler.GetIndoorValById)
+	router.GET("", r.airHandler.GetAirHome)
+	router.GET("/grafana", r.airHandler.GetAirToGrafana)
 	router.GET("/indoor", r.airHandler.GetIndoorValById)
+	//router.POST("/indoor", r.airHandler.GetIndoorValById)
 }

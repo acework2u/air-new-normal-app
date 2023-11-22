@@ -17,6 +17,11 @@ func NewAirsHandler(airIot airs.AirService) AirsHandler {
 	return AirsHandler{airIot: airIot, resp: utils.Response{}}
 }
 
+func (h *AirsHandler) GetAirHome(c *gin.Context) {
+
+	h.resp.Success(c, "Air IoT API Service")
+}
+
 func (h *AirsHandler) GetIndoorVal(c *gin.Context) {
 
 	airList, err := h.airIot.AirThings()
@@ -77,5 +82,37 @@ func (h *AirsHandler) GetIndoorValById(c *gin.Context) {
 	log.Println(filter)
 	c.JSON(400, filter)
 	//deviceSn := c.Param("sn")
+
+}
+func (h *AirsHandler) GetAirToGrafana(c *gin.Context) {
+
+	filter := struct {
+		DeviceSn  string `json:"device_sn" form:"device_sn"`
+		StartDate string `json:"start_date" form:"start_date"`
+		EndDate   string `json:"end_date" form:"end_date"`
+	}{}
+
+	if c.ShouldBind(&filter) == nil {
+		//log.Println(filter.DeviceSn)
+		//log.Println(filter.StartDate)
+		//log.Println(filter.EndDate)
+
+		filters := &airs.Filter{
+			DeviceSn: filter.DeviceSn,
+			StartAt:  filter.StartDate,
+			EndAt:    filter.EndDate,
+		}
+
+		result, err := h.airIot.AirThingsById2(filter.DeviceSn, filters)
+		if err != nil {
+			h.resp.BadRequest(c, err.Error())
+			return
+		}
+
+		h.resp.Success(c, result)
+		return
+	}
+
+	c.JSON(400, filter)
 
 }

@@ -11,7 +11,19 @@ type AirNewNormal struct {
 type AirReport struct {
 	DeviceSn string    `json:"device_sn"`
 	IndVal   IndoorVal `json:"ind_val"`
-	TimeAt   string    `json:"time_at"`
+	TimeAt   time.Time `json:"time_at"`
+}
+
+type AirInGrafana struct {
+	DeviceSn string    `json:"deviceSn"`
+	IndVal   IndValue  `json:"indVal"`
+	TimeAt   time.Time `json:"timeAt"`
+}
+
+type IndValue struct {
+	Power    int     `json:"power"`
+	Temp     float64 `json:"temp"`
+	RoomTemp float64 `json:"roomTemp"`
 }
 
 type IndoorVal struct {
@@ -47,4 +59,5 @@ type IndoorInfo struct {
 type AirService interface {
 	AirThings() ([]*AirNewNormal, error)
 	AirThingsById(deviceSn string, fil *Filter) ([]*AirReport, error)
+	AirThingsById2(deviceSn string, fil *Filter) ([]*AirInGrafana, error)
 }

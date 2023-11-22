@@ -4,6 +4,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"strings"
+	"time"
 )
 
 func ToDoc(v interface{}) (doc *bson.D, err error) {
@@ -211,4 +214,49 @@ func louver(val int) string {
 		displayTxt = "err"
 	}
 	return displayTxt
+}
+
+type ConvDateDB time.Time
+
+func (v ConvDateDB) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	return bson.MarshalValue(time.Time(v))
+}
+
+func (v *ConvDateDB) UnmarshalBSONValue(t bsontype.Type, b []byte) error {
+	rv := bson.RawValue{
+		Type:  t,
+		Value: b,
+	}
+	res := time.Time{}
+	if err := rv.Unmarshal(&res); err != nil {
+		return err
+	}
+	*v = ConvDateDB(res)
+	return nil
+
+}
+func (v ConvDateDB) String() string {
+	return time.Time(v).String()
+}
+
+type CustomTime struct {
+	time.Time
+}
+type TestModel struct {
+	Date CustomTime `json:"date"`
+}
+
+func (t CustomTime) MarshalJSON() ([]byte, error) {
+	date := t.Time.Format("2006-01-02")
+	date = fmt.Sprintf(`"%s"`, date)
+	return []byte(date), nil
+}
+func (t *CustomTime) UnmarshalJSON(b []byte) (err error) {
+	s := strings.Trim(string(b), "\"")
+	date, err := time.Parse("2006-01-02", s)
+	if err != nil {
+		return err
+	}
+	t.Time = date
+	return
 }
