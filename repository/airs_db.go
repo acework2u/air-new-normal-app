@@ -5,7 +5,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"log"
 )
 
 type AirRepositoryDB struct {
@@ -54,12 +53,28 @@ func (r *AirRepositoryDB) ReadAirIndoorValId(filter *Filter) ([]*AirRawData, err
 	matchStage := bson.D{{"$match", bson.D{{"device_sn", filter.DeviceSN}, {"$and", []bson.M{bson.M{"timestamp": bson.M{"$gte": stDate}}, bson.M{"timestamp": bson.M{"$lt": endDate}}}}}}}
 	sortStage := bson.D{{"$sort", bson.M{"timestamp": -1}}}
 
-	log.Println(matchStage)
+	var cursor *mongo.Cursor
+	var ok error
 
-	cursor, err := r.airsThingsCollection.Aggregate(r.ctx, mongo.Pipeline{matchStage, sortStage})
-	if err != nil {
-		return nil, err
+	if filter.Limit > 0 {
+		limitStage := bson.D{{"$limit", filter.Limit}}
+		cursor, ok = r.airsThingsCollection.Aggregate(r.ctx, mongo.Pipeline{matchStage, sortStage, limitStage})
+		if ok != nil {
+			return nil, ok
+		}
+	} else {
+		cursor, ok = r.airsThingsCollection.Aggregate(r.ctx, mongo.Pipeline{matchStage, sortStage})
+		if ok != nil {
+			return nil, ok
+		}
 	}
+
+	//log.Println(matchStage)
+
+	//cursor, err := r.airsThingsCollection.Aggregate(r.ctx, mongo.Pipeline{matchStage, sortStage})
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	defer cursor.Close(r.ctx)
 	//result := bson.M{}

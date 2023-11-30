@@ -16,6 +16,7 @@ type Filter struct {
 	DeviceSN    string
 	StartDateAt time.Time
 	EndDateAt   time.Time
+	Limit       int
 }
 
 type AirsRepository interface {

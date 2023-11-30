@@ -48,11 +48,11 @@ func (s *airThingsService) AirThingsById(sn string, filter *Filter) ([]*AirRepor
 	startAt, _ := time.Parse(time.RFC3339, filter.StartAt)
 	finishAt, _ := time.Parse(time.RFC3339, filter.EndAt)
 
-	d := time.Now()
-	a := utils.ConvDateDB(d)
+	//d := time.Now()
+	//a := utils.ConvDateDB(d)
 
-	fmt.Println("FInish Add fat = ", d)
-	fmt.Println("FInish Add fat a = ", a)
+	//fmt.Println("FInish Add fat = ", d)
+	//fmt.Println("FInish Add fat a = ", a)
 
 	if len(sn) > 12 {
 
@@ -102,9 +102,9 @@ func (s *airThingsService) AirThingsById2(sn string, filter *Filter) ([]*AirInGr
 
 	startAt, _ := time.Parse(time.RFC3339, filter.StartAt)
 	finishAt, _ := time.Parse(time.RFC3339, filter.EndAt)
-
-	log.Println("startAt = ", startAt)
-	log.Println("End At -=", finishAt)
+	//
+	//log.Println("startAt = ", startAt)
+	//log.Println("End At -=", finishAt)
 
 	if len(sn) > 12 {
 
@@ -112,6 +112,7 @@ func (s *airThingsService) AirThingsById2(sn string, filter *Filter) ([]*AirInGr
 			DeviceSN:    sn,
 			StartDateAt: startAt,
 			EndDateAt:   finishAt,
+			Limit:       filter.Limit,
 		}
 
 		dbRs, err := s.airRepo.ReadAirIndoorValId(&queryFilter)
@@ -154,6 +155,73 @@ func (s *airThingsService) AirThingsById2(sn string, filter *Filter) ([]*AirInGr
 
 	return airReport, nil
 }
+func (s *airThingsService) DeviceThingsById(filter *Filter) ([]*AirInv2000Val, error) {
+
+	deviceSn := filter.DeviceSn
+	startAt, _ := time.Parse(time.RFC3339, filter.StartAt)
+	endAt, _ := time.Parse(time.RFC3339, filter.EndAt)
+
+	queryFilter := repository.Filter{
+		DeviceSN:    deviceSn,
+		StartDateAt: startAt,
+		EndDateAt:   endAt,
+		Limit:       filter.Limit,
+	}
+
+	indVal, err := s.airRepo.ReadAirIndoorValId(&queryFilter)
+
+	if err != nil {
+		return nil, err
+	}
+
+	ac2000 := []*AirInv2000Val{}
+
+	for _, item := range indVal {
+		rs := &AirInv2000Val{
+			DeviceSn:  item.DeviceSn,
+			Message:   readInv2000(item.Message),
+			Timestamp: item.Timestamp,
+		}
+
+		ac2000 = append(ac2000, rs)
+	}
+
+	return ac2000, nil
+}
+func (s *airThingsService) DeviceThingsOduVal(filter *Filter) ([]*AirOdu3000, error) {
+	deviceSn := filter.DeviceSn
+	startAt, _ := time.Parse(time.RFC3339, filter.StartAt)
+	endAt, _ := time.Parse(time.RFC3339, filter.EndAt)
+
+	queryFilter := repository.Filter{
+		DeviceSN:    deviceSn,
+		StartDateAt: startAt,
+		EndDateAt:   endAt,
+		Limit:       filter.Limit,
+	}
+	ac3000 := []*AirOdu3000{}
+	if len(deviceSn) > 12 {
+
+		oduVal, err := s.airRepo.ReadAirIndoorValId(&queryFilter)
+
+		if err != nil {
+			return nil, err
+		}
+
+		for _, item := range oduVal {
+			odu := &AirOdu3000{
+				DeviceSN:  item.DeviceSn,
+				OduVal:    readOdu3000(item.Message),
+				Timestamp: item.Timestamp,
+			}
+
+			ac3000 = append(ac3000, odu)
+		}
+
+	} // end if
+
+	return ac3000, nil
+}
 
 func powerVal(p string) int {
 
@@ -165,13 +233,6 @@ func powerVal(p string) int {
 }
 
 func readTime(tm time.Time) string {
-
-	//nt := fmt.Sprintf("%v", tm.Local())
-	//fmt.Println("This tm =", tm)
-	//fmt.Println("this nt = ", nt)
-	//t, _ := time.Parse(time.RFC3339, fmt.Sprintf("%v", tm))
-	//fmt.Println("This t = ", t)
-	//dateTex := tm.Format("2017.09.07 17:06:06")
 
 	dateTex := fmt.Sprintf("%s", tm)
 
@@ -192,4 +253,33 @@ func readMsg(msg string) *IndoorInfo {
 	acData := (*IndoorInfo)(ac1000)
 
 	return acData
+}
+
+func readInv2000(msg string) *IndVal2000 {
+	ind2000 := &IndVal2000{}
+	airDecode, err := utils.GetClaimsFromToken(msg)
+	if err != nil {
+		return nil
+	}
+
+	reg2000 := airDecode["data"].(map[string]interface{})["reg2000"].(string)
+	acVal := utils.NewAcVal("2", reg2000)
+	ac2000 := acVal.Ac2000()
+	ind2000 = (*IndVal2000)(ac2000)
+
+	return ind2000
+}
+func readOdu3000(msg string) *OduVal3000 {
+	odu3000 := &OduVal3000{}
+	airDecode, err := utils.GetClaimsFromToken(msg)
+	if err != nil {
+		return nil
+	}
+
+	reg3000 := airDecode["data"].(map[string]interface{})["reg3000"].(string)
+	acVal := utils.NewAcVal("3", reg3000)
+	ac3000 := acVal.Ac3000()
+	odu3000 = (*OduVal3000)(ac3000)
+
+	return odu3000
 }
