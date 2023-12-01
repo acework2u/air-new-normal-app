@@ -30,14 +30,14 @@ type fanSpeedFunc func(val int) string
 type louverFunc func(val int) string
 
 type AC1000 struct {
-	Power    powerFunc    `json:"power"`
-	Mode     modeFunc     `json:"mode"`
-	Temp     tempFunc     `json:"temp"`
-	RoomTemp roomTempFunc `json:"roomTemp"`
-	SetRh    setRhFunc    `json:"setRh"`
-	RoomRh   roomRhFunc   `json:"roomRh"`
-	FanSpeed fanSpeedFunc `json:"fanSpeed"`
-	Louver   louverFunc   `json:"louver"`
+	Power    powerFunc       `json:"power"`
+	Mode     modeFunc        `json:"mode"`
+	Temp     tempFunc        `json:"temp"`
+	RoomTemp roomTempFunc    `json:"roomTemp"`
+	SetRh    indFunc[[]byte] `json:"setRh"`
+	RoomRh   indFunc[[]byte] `json:"roomRh"`
+	FanSpeed fanSpeedFunc    `json:"fanSpeed"`
+	Louver   louverFunc      `json:"louver"`
 }
 
 // Indoor value register2000
@@ -56,8 +56,8 @@ type compActualFunc func(val int) int
 type compCurrentFunc func(val []byte) int
 type comStatus func(val []byte) int
 type oduErrorFunc func(val []byte) int
-type oduSuction func(val []byte) int
 type oduFunc[T int | []byte] func(val T) int
+type indFunc[T int | []byte] func(val T) int
 
 type AC2000 struct {
 	MidCoilTemp   midCoilFunc       `json:"midCoilTemp"`
@@ -88,8 +88,8 @@ type IndoorInfo struct {
 	Mode     string `json:"mode"`
 	Temp     string `json:"temp"`
 	RoomTemp string `json:"roomTemp"`
-	RhSet    string `json:"rhSet"`
-	RhRoom   string `json:"RhRoom"`
+	RhSet    int    `json:"rhSet"`
+	RhRoom   int    `json:"RhRoom"`
 	FanSpeed string `json:"fanSpeed"`
 	Louver   string `json:"louver"`
 }
@@ -170,8 +170,8 @@ func (ut *AcStr) Ac1000() *IndoorInfo {
 		Mode:     mode,
 		Temp:     temp,
 		RoomTemp: roomTemp,
-		SetRh:    rh,
-		RoomRh:   rh,
+		SetRh:    rhSet,
+		RoomRh:   rhTemp,
 		FanSpeed: fanSpeed,
 		Louver:   louver,
 	}
@@ -180,8 +180,8 @@ func (ut *AcStr) Ac1000() *IndoorInfo {
 		Mode:     ac.Mode(int(ut.reg1000[3])),
 		Temp:     ac.Temp(int(ut.reg1000[5])),
 		RoomTemp: ac.RoomTemp(int(ut.reg1000[7])),
-		RhSet:    ac.SetRh(int(ut.reg1000[9])),
-		RhRoom:   ac.RoomRh(int(ut.reg1000[11])),
+		RhSet:    ac.SetRh(ut.reg1000[8:10]),
+		RhRoom:   ac.RoomRh(ut.reg1000[10:12]),
 		FanSpeed: ac.FanSpeed(int(ut.reg1000[13])),
 		Louver:   ac.Louver(int(ut.reg1000[15])),
 	}
@@ -248,7 +248,7 @@ func (ut *AcStr) Ac3000() *Out3000 {
 
 	if len(ut.reg3000) == 80 {
 
-		//log.Println("REg 3000")
+		//log.Printlnma"REg 3000")
 		//log.Println("Len == >", len(ut.reg3000))
 		//log.Println(ut.reg3000)
 		//log.Println("Mid-Coil =", ut.reg3000[0:2])
@@ -499,7 +499,6 @@ func oduDemand(val int) int {
 	return val
 }
 func oduCompStatus(val []byte) int {
-
 	status := 0
 	if len(val) == 2 {
 
@@ -547,6 +546,26 @@ func oduSectionFunc(val []byte) int {
 	}
 
 	return sectionTemp
+}
+
+func rhSet(val []byte) int {
+	if len(val) == 2 {
+		return int(val[1])
+	}
+	return 0
+}
+func rhTemp(val []byte) int {
+
+	if len(val) == 2 {
+		return int(val[1])
+	}
+	return 0
+	//
+	//if rhVal == 255 {
+	//	return 255
+	//}
+	//return rhVal
+
 }
 
 //Custom Datetime

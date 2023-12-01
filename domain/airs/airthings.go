@@ -36,12 +36,16 @@ type IndValue struct {
 	Power    int     `json:"power"`
 	Temp     float64 `json:"temp"`
 	RoomTemp float64 `json:"roomTemp"`
+	RhSet    int     `json:"rhSet"`
+	RhRoom   int     `json:"rhRoom"`
 }
 
 type IndoorVal struct {
 	Power    string `json:"power"`
 	Temp     string `json:"temp"`
 	RoomTemp string `json:"roomTemp"`
+	RhSet    int    `json:"rhSet"`
+	RhRoom   int    `json:"rhRoom"`
 }
 
 type Filter struct {
@@ -65,8 +69,8 @@ type IndoorInfo struct {
 	Mode     string `json:"mode,omitempty"`
 	Temp     string `json:"temp,omitempty"`
 	RoomTemp string `json:"roomTemp,omitempty"`
-	RhSet    string `json:"rhSet,omitempty"`
-	RhRoom   string `json:"RhRoom,omitempty"`
+	RhSet    int    `json:"rhSet,omitempty"`
+	RhRoom   int    `json:"rhRoom,omitempty"`
 	FanSpeed string `json:"fanSpeed,omitempty"`
 	Louver   string `json:"louver,omitempty"`
 }

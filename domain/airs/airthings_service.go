@@ -60,6 +60,7 @@ func (s *airThingsService) AirThingsById(sn string, filter *Filter) ([]*AirRepor
 			DeviceSN:    sn,
 			StartDateAt: startAt,
 			EndDateAt:   finishAt,
+			Limit:       filter.Limit,
 		}
 
 		dbRs, err := s.airRepo.ReadAirIndoorValId(&queryFilter)
@@ -84,9 +85,10 @@ func (s *airThingsService) AirThingsById(sn string, filter *Filter) ([]*AirRepor
 	if len(result) > 0 {
 
 		for _, k := range result {
+
 			air := &AirReport{
 				DeviceSn: k.DeviceSn,
-				IndVal:   IndoorVal{Power: k.Message.Power, Temp: k.Message.Temp, RoomTemp: k.Message.RoomTemp},
+				IndVal:   IndoorVal{Power: k.Message.Power, Temp: k.Message.Temp, RoomTemp: k.Message.RoomTemp, RhSet: k.Message.RhSet, RhRoom: k.Message.RhRoom},
 				TimeAt:   k.Timestamp,
 			}
 			airReport = append(airReport, air)
