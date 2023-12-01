@@ -2,3 +2,5 @@
 .env
 Makefile
 .DS_Store
+app.env
+tmp
