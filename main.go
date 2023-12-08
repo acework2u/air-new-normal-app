@@ -7,11 +7,15 @@ import (
 	"Airnewnormal/repository"
 	"Airnewnormal/routers"
 	"context"
+	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	nrgin "github.com/newrelic/go-agent/v3/integrations/nrgin"
+	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.mongodb.org/mongo-driver/mongo"
 	"log"
 	"net/http"
+	"os"
 )
 
 var (
@@ -26,7 +30,7 @@ var (
 )
 
 func init() {
-
+	//godotenv.Load()
 	//load Env
 	envConf, _ := conf.LoadConfig(".")
 	//DB Connected
@@ -41,7 +45,9 @@ func init() {
 	AirsRouter = routers.NewAirsRouter(airsHandler)
 
 	ctx = context.TODO()
-	server = gin.Default()
+	gin.SetMode(os.Getenv("GIN_MODE"))
+	//server = gin.Default()
+	server = gin.New()
 
 }
 
@@ -55,6 +61,15 @@ func startGinServer(cf conf.Config) {
 	corsConfig.AllowOrigins = []string{cf.Origin}
 	corsConfig.AllowCredentials = true
 	corsConfig.AllowHeaders = []string{"Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With,grafana backend/server,X-Grafana-Org-Id"}
+
+	app, _ := newrelic.NewApplication(
+		newrelic.ConfigAppName("air-iot"),
+		newrelic.ConfigLicense("863f2c934853214b4c3b5eb25a59406fFFFFNRAL"),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+
+	server.Use(nrgin.Middleware(app))
+
 	server.Use(cors.New(corsConfig))
 	server.Use(gin.Recovery())
 
@@ -72,7 +87,8 @@ func startGinServer(cf conf.Config) {
 
 	//AirThings
 	AirsRouter.AirRoute(router)
+	port := os.Getenv("PORT")
 
-	log.Fatal(server.Run(":8888"))
+	log.Fatal(server.Run(fmt.Sprintf(":%v", port)))
 
 }

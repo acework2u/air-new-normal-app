@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"log"
 	"strings"
 	"time"
 )
@@ -76,9 +77,14 @@ type AC3000 struct {
 	Discharge   dischargeFunc   `json:"discharge"`
 	Ambient     ambientFunc     `json:"ambient"`
 	Suction     oduFunc[[]byte] `json:"suction"`
-	CompActual  compActualFunc  `json:"compActual"`
-	CompCurrent compCurrentFunc `json:"compCurrent"`
-	Demand      demandFunc      `json:"demand"`
+	Co2H        oduFunc[[]byte] `json:"co2H"`
+	Co2L        oduFunc[[]byte] `json:"co2L"`
+	CompActual  oduFunc[[]byte] `json:"compActual"`
+	CompCurrent oduFunc[[]byte] `json:"compCurrent"`
+	OduFan      oduFunc[[]byte] `json:"oduFan"`
+	SysMode     oduFunc[[]byte] `json:"sysMode"`
+	UnitCap     oduFunc[[]byte] `json:"unitCap"`
+	Demand      oduFunc[[]byte] `json:"demand"`
 	StatusComp  comStatus       `json:"statusComp"`
 	OudErrors   oduErrorFunc    `json:"oudErrors"`
 }
@@ -109,8 +115,12 @@ type Out3000 struct {
 	Discharge   int `json:"discharge"`
 	Ambient     int `json:"ambient"`
 	Suction     int `json:"suction"`
+	Co2         int `json:"co2"`
 	CompActual  int `json:"compActual"`
 	CompCurrent int `json:"compCurrent"`
+	OduFan      int `json:"oduFan"`
+	SysMode     int `json:"sysMode"`
+	UnitCap     int `json:"unitCap"`
 	Demand      int `json:"demand"`
 	StatusComp  int `json:"statusComp"`
 	LedStatus   int `json:"ledStatus"`
@@ -140,12 +150,13 @@ func NewGetAcVal(reg1000 string) AcValue {
 func NewAcVal(reg string, payload string) AcValue {
 
 	data, err := hex.DecodeString(payload)
+
 	if err != nil {
 		panic(err)
 	}
-	//log.Println(payload)
+	////log.Println(payload)
 	//log.Println("data")
-	//log.Println(payload)
+	////log.Println(payload)
 	//log.Println(len(payload))
 	//log.Println(data)
 
@@ -239,7 +250,7 @@ func (ut *AcStr) Ac3000() *Out3000 {
 		Discharge:   oduDischarge,
 		Ambient:     oudAmbient,
 		Suction:     oduSectionFunc,
-		CompActual:  oduComActual,
+		CompActual:  oduCap1Byte,
 		CompCurrent: oduComCurrent,
 		Demand:      oduDemand,
 		StatusComp:  oduCompStatus,
@@ -261,7 +272,14 @@ func (ut *AcStr) Ac3000() *Out3000 {
 		//log.Println("Ambient =", ut.reg3000[8:10])
 		//log.Println("Comp Actual =", ut.reg3000[20:22])
 		//log.Println("Comp Current =", ut.reg3000[24:28])
-		//log.Println("Demand  =", ut.reg3000[40:42])
+		log.Println("3000 lent", len(ut.reg3000))
+		//x := hex.Dump(ut.reg3000)
+		//log.Println(x)
+		log.Println(ut.reg3000)
+		log.Println("Com1-act  =", ut.reg3000[20:22])
+		log.Println("Com1-current  =", ut.reg3000[24:28])
+		log.Println("Demand  =", ut.reg3000[34:36])
+
 		//log.Println("Demand  =", ut.reg3000[41])
 
 		rs := &Out3000{
@@ -270,9 +288,9 @@ func (ut *AcStr) Ac3000() *Out3000 {
 			Discharge:   ac.Discharge(int(ut.reg3000[5])),
 			Ambient:     ac.Ambient(int(ut.reg3000[9])),
 			Suction:     ac.Suction(ut.reg3000[10:12]),
-			CompActual:  ac.CompActual(int(ut.reg3000[19])),
+			CompActual:  ac.CompActual(ut.reg3000[20:22]),
 			CompCurrent: ac.CompCurrent(ut.reg3000[24:28]),
-			Demand:      ac.Demand(int(ut.reg3000[41])),
+			Demand:      ac.Demand(ut.reg3000[34:36]),
 			StatusComp:  ac.StatusComp(ut.reg3000[44:46]),
 			LedStatus:   ac.OudErrors(ut.reg3000[72:76]),
 		}
@@ -280,6 +298,13 @@ func (ut *AcStr) Ac3000() *Out3000 {
 	}
 	return &Out3000{}
 
+}
+
+func getRegVal(reg int, cap int, data []byte) (val []byte) {
+
+	//regAddr := len(data)/2
+
+	return []byte{}
 }
 
 func power(val int) string {
@@ -492,11 +517,31 @@ func oduConvTemp(val int) int {
 
 	return temp
 }
+
+func oduCap1Byte(src []byte) int {
+	if len(src) == 2 {
+		return int(src[1])
+	}
+	return 255
+}
+func oduCap2Byte(src []byte) int {
+	if len(src) == 2 {
+		return int(src[1])
+	}
+	return 255
+}
+
 func oduComActual(val int) int {
 	return val
 }
-func oduDemand(val int) int {
-	return val
+func oduDemand(val []byte) int {
+	demand := 0
+	if len(val) == 2 {
+
+		demand = int(val[1])
+	}
+
+	return demand
 }
 func oduCompStatus(val []byte) int {
 	status := 0
@@ -511,16 +556,23 @@ func oduComCurrent(val []byte) int {
 
 	comCurrent := 0
 	if len(val) == 4 {
-		z0 := int(val[0]) * 1
-		z1 := int(val[1]) * 2
-		z2 := int(val[2]) * 4
-		z3 := int(val[3]) * 8
 
-		comCurrent = (z0 + z1 + z2 + z3) / 10
+		//z0 := int(val[0]) * 1
+		//z1 := int(val[1]) * 2
+		//z2 := int(val[2]) * 4
+		//z3 := int(val[3]) * 8
+		//
+		//comCurrent = (z0 + z1 + z2 + z3) / 10
+		comUsege := int(val[1])
+
+		if comUsege > 0 {
+			comCurrent = comUsege / 10
+		}
 
 	} else {
 		comCurrent = -1
 	}
+
 	return comCurrent
 }
 

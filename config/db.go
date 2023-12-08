@@ -2,10 +2,12 @@ package config
 
 import (
 	"context"
+	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"os"
 )
 
 var (
@@ -24,8 +26,16 @@ func ConnectDB(dbUrl string) *mongo.Client {
 }
 
 func GetCollection(client *mongo.Client, collectionName string) *mongo.Collection {
-	dbName := viper.GetString("DB_Name")
-	collection := client.Database(dbName).Collection(collectionName)
-	return collection
+
+	if godotenv.Load() != nil {
+		dbName := viper.GetString("DB_Name")
+		collection := client.Database(dbName).Collection(collectionName)
+		return collection
+	} else {
+
+		dbName := os.Getenv("DB_Name")
+		collection := client.Database(dbName).Collection(collectionName)
+		return collection
+	}
 
 }

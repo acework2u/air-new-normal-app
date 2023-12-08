@@ -90,8 +90,12 @@ type OduVal3000 struct {
 	Discharge   int `json:"discharge"`
 	Ambient     int `json:"ambient"`
 	Suction     int `json:"suction"`
+	Co2         int `json:"co2"`
 	CompActual  int `json:"compActual"`
 	CompCurrent int `json:"compCurrent"`
+	OduFan      int `json:"oduFan"`
+	SysMode     int `json:"sysMode"`
+	UnitCap     int `json:"unitCap"`
 	Demand      int `json:"demand"`
 	StatusComp  int `json:"statusComp"`
 	LedStatus   int `json:"ledStatus"`

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 	"os"
 )
@@ -14,33 +15,46 @@ type Config struct {
 
 func LoadConfig(path string) (config Config, err error) {
 
-	appMode := os.Getenv("APP_MODE")
-	fileEnvType := "env"
-	fileEnvName := "app"
+	if godotenv.Load() == nil {
+		//fmt.Println("In working .env")
 
-	envPath := "."
-	if len(path) > 0 {
-		envPath = path
-	}
+		return Config{
+			DBUrl:  os.Getenv("DBUrl"),
+			Port:   os.Getenv("PORT"),
+			Origin: os.Getenv("CLIENT_ORIGIN"),
+			DBName: os.Getenv("DB_Name"),
+		}, err
 
-	if appMode == "dev" || appMode == "Dev" {
-		fileEnvType = "dev"
-		envPath = "."
+	} else {
 
-	}
+		appMode := os.Getenv("APP_MODE")
+		fileEnvType := "env"
+		fileEnvName := "app"
 
-	viper.AddConfigPath(envPath)
-	viper.SetConfigType(fileEnvType)
-	viper.SetConfigName(fileEnvName)
+		envPath := "."
+		if len(path) > 0 {
+			envPath = path
+		}
 
-	viper.AutomaticEnv()
-	err = viper.ReadInConfig()
-	if err != nil {
+		if appMode == "dev" || appMode == "Dev" {
+			fileEnvType = "dev"
+			envPath = "."
+
+		}
+
+		viper.AddConfigPath(envPath)
+		viper.SetConfigType(fileEnvType)
+		viper.SetConfigName(fileEnvName)
+
+		viper.AutomaticEnv()
+		err = viper.ReadInConfig()
+		if err != nil {
+
+			return
+		}
+
+		err = viper.Unmarshal(&config)
 		return
 	}
-
-	err = viper.Unmarshal(&config)
-
-	return
 
 }
