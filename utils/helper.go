@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"log"
 	"strings"
 	"time"
 )
@@ -250,8 +249,13 @@ func (ut *AcStr) Ac3000() *Out3000 {
 		Discharge:   oduDischarge,
 		Ambient:     oudAmbient,
 		Suction:     oduSectionFunc,
+		Co2H:        oduCap1Byte,
+		Co2L:        oduCap1Byte,
 		CompActual:  oduCap1Byte,
 		CompCurrent: oduComCurrent,
+		OduFan:      oduCap1Byte,
+		SysMode:     oduCap1Byte,
+		UnitCap:     oduCap2Byte,
 		Demand:      oduDemand,
 		StatusComp:  oduCompStatus,
 		OudErrors:   oduErrorLed,
@@ -272,13 +276,19 @@ func (ut *AcStr) Ac3000() *Out3000 {
 		//log.Println("Ambient =", ut.reg3000[8:10])
 		//log.Println("Comp Actual =", ut.reg3000[20:22])
 		//log.Println("Comp Current =", ut.reg3000[24:28])
-		log.Println("3000 lent", len(ut.reg3000))
-		//x := hex.Dump(ut.reg3000)
-		//log.Println(x)
-		log.Println(ut.reg3000)
-		log.Println("Com1-act  =", ut.reg3000[20:22])
-		log.Println("Com1-current  =", ut.reg3000[24:28])
-		log.Println("Demand  =", ut.reg3000[34:36])
+		//log.Println("3000 lent", len(ut.reg3000))
+		////x := hex.Dump(ut.reg3000)
+		////log.Println(x)
+		//log.Println(ut.reg3000)
+		//log.Println("Com1-act  =", ut.reg3000[20:22])
+		//log.Println("Com1-current  =", ut.reg3000[24:28])
+		//log.Println("Demand  =", ut.reg3000[34:36])
+		//log.Println("Co2H  =", ut.reg3000[16:18])
+		//log.Println("Co2H  =", getRegVal(8, 1, ut.reg3000))
+		//log.Println("Co2L  =", ut.reg3000[18:20])
+		//log.Println("Co2L  =", getRegVal(9, 1, ut.reg3000))
+		//log.Println("StatusComp  =", ut.reg3000[38:40])
+		//log.Println("StatusComp  =", getRegVal(19, 1, ut.reg3000))
 
 		//log.Println("Demand  =", ut.reg3000[41])
 
@@ -288,11 +298,15 @@ func (ut *AcStr) Ac3000() *Out3000 {
 			Discharge:   ac.Discharge(int(ut.reg3000[5])),
 			Ambient:     ac.Ambient(int(ut.reg3000[9])),
 			Suction:     ac.Suction(ut.reg3000[10:12]),
+			Co2:         getRegVal(8, 1, ut.reg3000) + getRegVal(9, 1, ut.reg3000),
 			CompActual:  ac.CompActual(ut.reg3000[20:22]),
 			CompCurrent: ac.CompCurrent(ut.reg3000[24:28]),
-			Demand:      ac.Demand(ut.reg3000[34:36]),
-			StatusComp:  ac.StatusComp(ut.reg3000[44:46]),
-			LedStatus:   ac.OudErrors(ut.reg3000[72:76]),
+			OduFan:      ac.OduFan(ut.reg3000[28:30]),
+			SysMode:     getRegVal(15, 1, ut.reg3000),
+			UnitCap:     getRegVal(16, 2, ut.reg3000),
+			Demand:      getRegVal(17, 1, ut.reg3000),
+			StatusComp:  getRegVal(19, 1, ut.reg3000),
+			LedStatus:   ac.OudErrors(ut.reg3000[58:62]),
 		}
 		return rs
 	}
@@ -300,11 +314,16 @@ func (ut *AcStr) Ac3000() *Out3000 {
 
 }
 
-func getRegVal(reg int, cap int, data []byte) (val []byte) {
+func getRegVal(reg int, cap int, data []byte) (val int) {
 
-	//regAddr := len(data)/2
+	var regVal int
+	dest := data[reg*2 : (reg*2)+(cap*2)]
 
-	return []byte{}
+	if len(dest) == 2 || len(dest) == 4 {
+		regVal = int(dest[1])
+	}
+
+	return regVal
 }
 
 func power(val int) string {
