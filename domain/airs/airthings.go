@@ -83,6 +83,8 @@ type IndVal2000 struct {
 	Capacity    int `json:"capacity"`
 	LedStatus   int `json:"ledStatus"`
 	Protection  int `json:"protection"`
+	Co2         int `json:"co2"`
+	Pm25        int `json:"pm25"`
 }
 type OduVal3000 struct {
 	MidcoilTemp int `json:"midcoilTemp"`

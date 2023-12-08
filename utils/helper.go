@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"log"
 	"strings"
 	"time"
+	"unsafe"
 )
 
 func ToDoc(v interface{}) (doc *bson.D, err error) {
@@ -68,7 +70,8 @@ type AC2000 struct {
 	LedStatus     statusFunc        `json:"ledStatus"`
 	Protection    protectionFunc    `json:"protection"`
 	UvTimeRunning uvTimeRunningFunc `json:"uvTimeRunning"`
-	Co2           co2Func           `json:"co2"`
+	Co2           oduFunc[[]byte]   `json:"co2"`
+	Pm25          oduFunc[[]byte]   `json:"pm25"`
 }
 type AC3000 struct {
 	MidCoilTemp midCoilFunc     `json:"midCoilTemp"`
@@ -107,6 +110,8 @@ type Ind2000 struct {
 	Capacity    int `json:"capacity"`
 	LedStatus   int `json:"ledStatus"`
 	Protection  int `json:"protection"`
+	Co2         int `json:"co2"`
+	Pm25        int `json:"pm25"`
 }
 type Out3000 struct {
 	MidcoilTemp int `json:"midcoilTemp"`
@@ -200,23 +205,29 @@ func (ut *AcStr) Ac1000() *IndoorInfo {
 }
 func (ut *AcStr) Ac2000() *Ind2000 {
 
-	//testReg := ut.reg2000[12:14]
-
-	//log.Println("Reg ")
+	//log.Println("Reg 2000")
 	//log.Println(len(ut.reg2000))
-	//log.Println("Mid-Coil =", ut.reg2000[0:2])
-	//log.Println("Out let =", ut.reg2000[2:4])
-	//log.Println("ExV =", ut.reg2000[4:6])
-	//log.Println("Demand =", ut.reg2000[6:8])
-	//log.Println("Capacity =", ut.reg2000[8:10])
-	//log.Println("Led Status =", ut.reg2000[10:12])
-	//log.Println("Protection =", ut.reg2000[12:14])
-	//log.Println("Pm2.5 =", ut.reg2000[14:16])
-	//log.Println("PM2.5 =", ut.reg2000[16:18])
-	//log.Println("CO2 =", ut.reg2000[18:])
+	//log.Println(ut.reg2000)
 
-	//data := binary.BigEndian.Uint64(testReg)
-	//fmt.Println(data)
+	//log.Println("Mid-Coil Reg[0] =", getRegVal(0, 1, ut.reg2000))
+	//log.Println("Outlet Reg[1] =", getRegVal(1, 1, ut.reg2000))
+	//log.Println("EXV Reg[2] =", getRegVal(2, 2, ut.reg2000))
+	//log.Println("EXV Reg[2] =", ut.reg2000[4:8])
+	//log.Println("%Demand Reg[3] =", getRegVal(3, 2, ut.reg2000))
+	//log.Println("Capacity Reg[4] =", getRegVal(4, 2, ut.reg2000))
+	//log.Println("Capacity Reg[4] =", ut.reg2000[8:12])
+	//log.Println("LED Status Reg[5] =", getRegVal(5, 2, ut.reg2000))
+	//log.Println("Unit Run Reg[6] =", getRegVal(6, 2, ut.reg2000))
+	//log.Println("PM2.5H Reg[7] =", getRegVal(7, 2, ut.reg2000))
+	//log.Println("PM2.5L Reg[8] =", getRegVal(8, 2, ut.reg2000))
+	////log.Println("PM2.5 Reg[9] =", getRegVal(9, 2, ut.reg2000))
+	//log.Printf("Type Of %v=", ut.reg2000[14:18])
+	//pm25 := ByteArrayToInt(ut.reg2000[14:18])
+	//log.Println("OK PM %", pm25)
+	//log.Println("OK PM2 val", pm25Val(ut.reg2000[14:18]))
+	//log.Println("CO2 Reg[9] =", getRegVal(9, 2, ut.reg2000))
+	//log.Println("CO2 Reg[9] =", ut.reg2000[18:20])
+	//log.Println("Cap")
 
 	ac := &AC2000{
 		MidCoilTemp:   midCoilTemp,
@@ -227,7 +238,8 @@ func (ut *AcStr) Ac2000() *Ind2000 {
 		IndCapacity:   indCapacity,
 		Protection:    protection,
 		UvTimeRunning: uvTimeRunning,
-		Co2:           indCo2,
+		Co2:           co2Val,
+		Pm25:          pm25Val,
 	}
 
 	rs := &Ind2000{
@@ -238,6 +250,8 @@ func (ut *AcStr) Ac2000() *Ind2000 {
 		Capacity:    ac.IndCapacity(int(ut.reg2000[9])),
 		LedStatus:   ac.LedStatus(int(ut.reg2000[11])),
 		Protection:  ac.Protection(int(ut.reg2000[13])),
+		Pm25:        ac.Pm25(ut.reg2000[14:18]),
+		Co2:         ac.Co2(ut.reg2000[18:20]),
 	}
 
 	return rs
@@ -314,16 +328,65 @@ func (ut *AcStr) Ac3000() *Out3000 {
 
 }
 
+//	func IntToByteArray(num int64) []byte {
+//		size := int(unsafe.Sizeof(num))
+//		arr := make([]byte, size)
+//		for i := 0; i < size; i++ {
+//			byt := *(*uint8)(unsafe.Pointer(uintptr(unsafe.Pointer(&num)) + uintptr(i)))
+//			arr[i] = byt
+//		}
+//		return arr
+//	}
+func ByteArrayToInt(arr []byte) int64 {
+	val := int64(0)
+	size := len(arr)
+	for i := 0; i < size; i++ {
+		*(*uint8)(unsafe.Pointer(uintptr(unsafe.Pointer(&val)) + uintptr(i))) = arr[i]
+	}
+	return val
+}
+
 func getRegVal(reg int, cap int, data []byte) (val int) {
 
 	var regVal int
-	dest := data[reg*2 : (reg*2)+(cap*2)]
 
-	if len(dest) == 2 || len(dest) == 4 {
-		regVal = int(dest[1])
+	maxReg := len(data) / 2
+
+	if reg < maxReg {
+		dest := data[reg*2 : (reg*2)+(cap*2)]
+		log.Println("Dest")
+		log.Println(dest)
+		if len(dest) == 2 || len(dest) == 4 {
+			regVal = int(dest[1])
+		}
+
 	}
 
 	return regVal
+}
+
+func co2Val(src []byte) int {
+
+	var val int
+	pmRaw := ByteArrayToInt(src)
+
+	if pmRaw > 0 {
+		val = int(pmRaw)
+	}
+
+	return val
+}
+
+func pm25Val(src []byte) int {
+
+	var val int
+	pmRaw := ByteArrayToInt(src)
+
+	if pmRaw > 0 {
+		val = int(pmRaw / 1000)
+	}
+
+	return val
 }
 
 func power(val int) string {
