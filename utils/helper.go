@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"log"
 	"strings"
 	"time"
 	"unsafe"
@@ -303,6 +302,12 @@ func (ut *AcStr) Ac3000() *Out3000 {
 		//log.Println("Co2L  =", getRegVal(9, 1, ut.reg3000))
 		//log.Println("StatusComp  =", ut.reg3000[38:40])
 		//log.Println("StatusComp  =", getRegVal(19, 1, ut.reg3000))
+		//log.Println(ut.reg3000)
+		//log.Println("CO2H =>", ut.reg3000[16:18])
+		//log.Println("CO2H 1=>", int(ByteArrayToInt(ut.reg3000[18:20])))
+		//log.Println("CO2H 2=>", getRegVal(8, 1, ut.reg3000))
+		//log.Println("CO2L =>", ut.reg3000[18:20])
+		//log.Println(getRegVal(9, 1, ut.reg3000))
 
 		//log.Println("Demand  =", ut.reg3000[41])
 
@@ -354,8 +359,8 @@ func getRegVal(reg int, cap int, data []byte) (val int) {
 
 	if reg < maxReg {
 		dest := data[reg*2 : (reg*2)+(cap*2)]
-		log.Println("Dest")
-		log.Println(dest)
+		//log.Println("Dest")
+		//log.Println(dest)
 		if len(dest) == 2 || len(dest) == 4 {
 			regVal = int(dest[1])
 		}
