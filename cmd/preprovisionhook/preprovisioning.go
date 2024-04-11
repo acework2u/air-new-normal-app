@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/subosito/gotenv"
@@ -88,6 +89,46 @@ type AirIoTDB struct {
 	Message   string             `bson:"message" json:"message"`
 }
 
+type OzoneWorkStage struct {
+	DeviceSn   string     `json:"device_sn"`
+	OzoneStage OzoneStage `json:"ozone_stage"`
+}
+type OzoneStage struct {
+	Stage    string `json:"stage"`
+	Title    string `json:"title"`
+	Duration string `json:"duration"`
+}
+
+func StageTitle(stage int32) string {
+	switch stage {
+	case 1, 2, 3, 4:
+		return fmt.Sprintf("ขั้นตอนที่ %v", stage)
+	default:
+		return ""
+
+	}
+}
+
+func DurationTitle(duration int32) string {
+	return fmt.Sprintf("เวลาดำเนินการ %vนาที", duration)
+}
+
+func Title(stage int32) string {
+	switch stage {
+	case 1:
+		return "ไล่ความชื้นในคอยล์"
+	case 2:
+		return "เครื่องสร้างโอโซนทำงาน"
+	case 3:
+		return "เครื่องคงปริมาณโอโซน"
+	case 4:
+		return "เครื่องทำการสลายโอโซน"
+	default:
+		return "เครื่องสร้างโอโซนหยุดทำงาน สถานะปกติ"
+
+	}
+}
+
 var (
 	ctx    context.Context
 	DB_URL = os.Getenv("DB_URL")
@@ -123,34 +164,48 @@ func main() {
 		log.Fatal(err.Error())
 	}
 	// 2. fins Ac all
+	for {
 
-	acIot := NewAcIotService(ctx, client)
-	acList, err := acIot.GetAcAll()
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	resp := []AirIot{}
-	for _, ac := range acList {
-		acVal := AirIot{
-			DeviceSn:  ac.DeviceSn,
-			Message:   ac.Message,
-			Timestamp: ac.Timestamp,
+		acIot := NewAcIotService(ctx, client)
+		acList, err := acIot.GetAcAll()
+		if err != nil {
+			fmt.Println(err.Error())
 		}
-		resp = append(resp, acVal)
-	}
-	//
-	if len(resp) != 0 {
-		for _, val := range resp {
-			acData, er := GetClaimsFromToken(val.Message)
-			if er != nil {
-				log.Println(er)
+
+		resp := []AirIot{}
+		for _, ac := range acList {
+			acVal := AirIot{
+				DeviceSn:  ac.DeviceSn,
+				Message:   ac.Message,
+				Timestamp: ac.Timestamp,
+			}
+			resp = append(resp, acVal)
+		}
+		//
+
+		if len(resp) != 0 {
+
+			for _, val := range resp {
+
+				acData, er := GetClaimsFromToken(val.Message)
+				if er != nil {
+					log.Println(er)
+					return
+				}
+				acDecode := DecodeValAcShadow(acData)
+				ac2000 := NewGetAcValue(acDecode)
+				ozone := ac2000.Ac2000()
+				ozoneEvent := &OzoneWorkStage{
+					DeviceSn:   val.DeviceSn,
+					OzoneStage: OzoneStage{Stage: StageTitle(ozone.Stage), Title: Title(ozone.Stage), Duration: DurationTitle(ozone.Duration)},
+				}
+				//fmt.Println(val.DeviceSn, " time= ", ozone.Duration, " stage =", ozone.Stage, "active=", time.Now())
+				fmt.Printf("device =%v stage=%v title=%v duration=%v \n", ozoneEvent.DeviceSn, ozoneEvent.OzoneStage.Stage, ozoneEvent.OzoneStage.Title, ozoneEvent.OzoneStage.Duration)
 			}
 
-			acDecode := DecodeValAcShadow(acData)
-			fmt.Println(acDecode.Reg2000)
-
 		}
+		//time.Sleep(8 * time.Second)
+		time.Sleep(20 * time.Second)
 
 	}
 
@@ -184,6 +239,15 @@ func GetClaimsFromToken(tokenString string) (jwt.MapClaims, error) {
 }
 
 // Helper
+type AcValue interface {
+	Ac2000() *OzoneEvent
+}
+
+type OzoneEvent struct {
+	Stage    int32
+	Duration int32
+}
+
 type AcStr struct {
 	reg1000 []byte
 	reg2000 []byte
@@ -209,4 +273,40 @@ func DecodeValAcShadow(valShadow jwt.MapClaims) *AcValReq {
 		Reg4000: regis4000,
 	}
 	return acValReq
+}
+
+func NewGetAcValue(reg *AcValReq) AcValue {
+	data1000, _ := hex.DecodeString(reg.Reg1000)
+	data2000, _ := hex.DecodeString(reg.Reg2000)
+	data3000, _ := hex.DecodeString(reg.Reg3000)
+	data4000, _ := hex.DecodeString(reg.Reg4000)
+
+	return &AcStr{
+		reg1000: data1000,
+		reg2000: data2000,
+		reg3000: data3000,
+		reg4000: data4000,
+	}
+}
+func (h *AcStr) Ac2000() *OzoneEvent {
+
+	data := &OzoneEvent{}
+	//fmt.Println(h.reg2000[18:])
+	if len(h.reg2000) == 20 {
+		ac := h.reg2000[18:]
+
+		data = &OzoneEvent{
+			Stage:    int32(ac[0]),
+			Duration: int32(ac[1]),
+		}
+
+	}
+
+	return data
+
+	//dataOzone := OzoneEvent{
+	//	Duration: int(duration),
+	//}
+	//
+	//panic("No Action")
 }
