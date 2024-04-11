@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/aws/aws-lambda-go/lambda"
 	_ "github.com/aws/aws-lambda-go/lambda"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -42,7 +41,7 @@ func HandleRequest(ctx context.Context, iot *AirIot) (newId string, err2 error) 
 		}
 	}()
 
-	collection := client.Database("air_newnormal").Collection("airs_things")
+	collection := client.Database("airs").Collection("airs_shadows")
 	cursor, err := collection.InsertOne(ctx, query)
 
 	if err != nil {
@@ -56,14 +55,6 @@ func HandleRequest(ctx context.Context, iot *AirIot) (newId string, err2 error) 
 }
 
 func main() {
-	//airInfo := &AirIot{
-	//	DeviceSn:  "2306F01054323",
-	//	Timestamp: 1699938683409,
-	//	Message:   "Wpx7g3bvwr.skjfdfdokoofdof",
-	//}
-
-	//HandleRequest(ctx, airInfo)
-
-	lambda.Start(HandleRequest)
+	//lambda.Start(HandleRequest)
 
 }
