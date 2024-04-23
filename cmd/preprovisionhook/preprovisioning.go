@@ -101,10 +101,10 @@ type OzoneStage struct {
 
 func StageTitle(stage int32) string {
 	switch stage {
-	case 1, 2, 3, 4:
+	case 1, 2, 3, 4, 5:
 		return fmt.Sprintf("ขั้นตอนที่ %v", stage)
 	default:
-		return ""
+		return "Ready"
 
 	}
 }
@@ -123,6 +123,9 @@ func Title(stage int32) string {
 		return "เครื่องคงปริมาณโอโซน"
 	case 4:
 		return "เครื่องทำการสลายโอโซน"
+	case 5:
+		return "เครื่องทำการสลายโอโซนเสร็จแล้ว"
+
 	default:
 		return "เครื่องสร้างโอโซนหยุดทำงาน สถานะปกติ"
 

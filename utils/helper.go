@@ -276,41 +276,6 @@ func (ut *AcStr) Ac3000() *Out3000 {
 
 	if len(ut.reg3000) == 80 {
 
-		//log.Printlnma"REg 3000")
-		//log.Println("Len == >", len(ut.reg3000))
-		//log.Println(ut.reg3000)
-		//log.Println("Mid-Coil =", ut.reg3000[0:2])
-		//log.Println("Co2 Low =", ut.reg3000[16:18])
-		//log.Println("Co2 Hi =", ut.reg3000[18:20])
-		//log.Println("Outlet =", ut.reg3000[2:4])
-		//log.Println("Discharge =", ut.reg3000[4:6])
-		//log.Println("Suction =", ut.reg3000[11])
-		//log.Println("Suction =", ut.reg3000[10:12])
-		//log.Println("Ambient =", ut.reg3000[8:10])
-		//log.Println("Comp Actual =", ut.reg3000[20:22])
-		//log.Println("Comp Current =", ut.reg3000[24:28])
-		//log.Println("3000 lent", len(ut.reg3000))
-		////x := hex.Dump(ut.reg3000)
-		////log.Println(x)
-		//log.Println(ut.reg3000)
-		//log.Println("Com1-act  =", ut.reg3000[20:22])
-		//log.Println("Com1-current  =", ut.reg3000[24:28])
-		//log.Println("Demand  =", ut.reg3000[34:36])
-		//log.Println("Co2H  =", ut.reg3000[16:18])
-		//log.Println("Co2H  =", getRegVal(8, 1, ut.reg3000))
-		//log.Println("Co2L  =", ut.reg3000[18:20])
-		//log.Println("Co2L  =", getRegVal(9, 1, ut.reg3000))
-		//log.Println("StatusComp  =", ut.reg3000[38:40])
-		//log.Println("StatusComp  =", getRegVal(19, 1, ut.reg3000))
-		//log.Println(ut.reg3000)
-		//log.Println("CO2H =>", ut.reg3000[16:18])
-		//log.Println("CO2H 1=>", int(ByteArrayToInt(ut.reg3000[18:20])))
-		//log.Println("CO2H 2=>", getRegVal(8, 1, ut.reg3000))
-		//log.Println("CO2L =>", ut.reg3000[18:20])
-		//log.Println(getRegVal(9, 1, ut.reg3000))
-
-		//log.Println("Demand  =", ut.reg3000[41])
-
 		rs := &Out3000{
 			MidcoilTemp: ac.MidCoilTemp(int(ut.reg3000[1])),
 			OutletTemp:  ac.OutletTemp(int(ut.reg3000[3])),
