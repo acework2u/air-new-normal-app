@@ -1,31 +1,26 @@
 package main
 
-/*
+import (
+	"context"
+	"fmt"
+	"os"
+)
+
 func main() {
-	// Create the message to be sent.
-	msg := &fcm.Message{
-		To: "sample_device_token",
-		Data: map[string]interface{}{
-			"foo": "bar",
-		},
-		Notification: &fcm.Notification{
-			Title: "title",
-			Body:  "body",
-		},
-	}
-
-	// Create a FCM client to send the message.
-	client, err := fcm.NewClient("sample_api_key")
+	ctx := context.Background()
+	// Database init
+	mc, err := Init(ctx, "DB_URL")
 	if err != nil {
-		log.Fatalln(err)
+		fmt.Printf("mongo error: %v", err)
+		os.Exit(1)
 	}
+	defer mc.Disconnect(ctx)
 
-	// Send the message and receive the response without retries.
-	response, err := client.Send(msg)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	//Create a mongo database with the db name
+	mongoDB := mc.Database("notification_service")
+	//Creat a notification token collection
+	tokenCollection := mongoDB.Collection("notificationTokens")
 
-	log.Printf("%#v\n", response)
+	_ = tokenCollection
+
 }
-*/
