@@ -18,6 +18,7 @@ func (r *AirsRouter) AirRoute(rg *gin.RouterGroup) {
 	router.GET("", r.airHandler.GetAirHome)
 	router.GET("/grafana", r.airHandler.GetAirToGrafana)
 	router.GET("/indoor", r.airHandler.GetIndoorValById)
+	router.GET("/indoors", r.airHandler.GetIndoorVal)
 
 	router2 := rg.Group("grafana-air-service")
 	router2.GET("", r.airHandler.GetAirToGrafanaMonitor)

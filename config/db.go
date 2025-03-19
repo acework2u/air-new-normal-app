@@ -15,7 +15,8 @@ var (
 )
 
 func ConnectDB(dbUrl string) *mongo.Client {
-
+	log.Println("Connecting to DB")
+	log.Println(dbUrl)
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(dbUrl))
 	if err != nil {
 		log.Fatal(err)

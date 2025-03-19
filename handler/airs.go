@@ -40,14 +40,7 @@ func (h *AirsHandler) GetIndoorValById(c *gin.Context) {
 		EndDate   string `json:"end_date" form:"end_date"`
 	}{}
 
-	//err := c.ShouldBindJSON(&filter)
-
-	//err := c.ShouldBindUri(&filter)
-
 	if c.ShouldBind(&filter) == nil {
-		//log.Println(filter.DeviceSn)
-		//log.Println(filter.StartDate)
-		//log.Println(filter.EndDate)
 
 		filters := &airs.Filter{
 			DeviceSn: filter.DeviceSn,
@@ -62,25 +55,9 @@ func (h *AirsHandler) GetIndoorValById(c *gin.Context) {
 		}
 
 		h.resp.Success(c, result)
-		//c.Header("Content-Type", "application/json")
-		//
-		////aorJson, _ := json.Marshal(result)
-		////
-		////c.AsciiJSON(200, string(aorJson))
-		////c.AsciiJSON(200, string(aorJson))
-		//
-		//c.JSON(200, result)
 
 		return
 	}
-
-	//if err != nil {
-	//	h.resp.BadRequest(c, err.Error())
-	//	return
-	//}
-
-	//log.Println(filter)
-
 	c.JSON(400, filter)
 	//deviceSn := c.Param("sn")
 
