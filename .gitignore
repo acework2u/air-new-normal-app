@@ -25,6 +25,9 @@ tmp
 ### Go Patch ###
 /vendor/
 /Godeps/
+tmp/
+tmp/build-errors.log
+tmp/main
 
 ### macOS ###
 # General
