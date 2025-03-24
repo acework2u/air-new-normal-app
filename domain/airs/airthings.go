@@ -73,6 +73,7 @@ type IndoorInfo struct {
 	RhRoom   int    `json:"rhRoom,omitempty"`
 	FanSpeed string `json:"fanSpeed,omitempty"`
 	Louver   string `json:"louver,omitempty"`
+	Pm25     int    `json:"pm25,omitempty"`
 }
 
 type IndVal2000 struct {
@@ -105,7 +106,7 @@ type OduVal3000 struct {
 
 type AirService interface {
 	AirThings() ([]*AirNewNormal, error)
-	AirThingsById(deviceSn string, fil *Filter) ([]*AirReport, error)
+	AirThingsById(deviceSn string, fil *Filter) ([]*AirNewNormal, error)
 	AirThingsById2(deviceSn string, fil *Filter) ([]*AirInGrafana, error)
 	DeviceThingsById(filter *Filter) ([]*AirInv2000Val, error)
 	DeviceThingsOduVal(filter *Filter) ([]*AirOdu3000, error)

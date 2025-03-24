@@ -41,62 +41,55 @@ func (s *airThingsService) AirThings() ([]*AirNewNormal, error) {
 
 	return airVal, nil
 }
-func (s *airThingsService) AirThingsById(sn string, filter *Filter) ([]*AirReport, error) {
-
-	result := []*AirNewNormal{}
+func (s *airThingsService) AirThingsById(sn string, filter *Filter) ([]*AirNewNormal, error) {
 
 	startAt, _ := time.Parse(time.RFC3339, filter.StartAt)
 	finishAt, _ := time.Parse(time.RFC3339, filter.EndAt)
 
-	//d := time.Now()
-	//a := utils.ConvDateDB(d)
+	queryFilter := repository.Filter{
+		DeviceSN:    sn,
+		StartDateAt: startAt,
+		EndDateAt:   finishAt,
+		Limit:       filter.Limit,
+	}
+	log.Println("queryFilter = ", queryFilter)
+	dbRs, err := s.airRepo.ReadAirIndoorValId(&queryFilter)
 
-	//fmt.Println("FInish Add fat = ", d)
-	//fmt.Println("FInish Add fat a = ", a)
-
-	if len(sn) > 12 {
-
-		queryFilter := repository.Filter{
-			DeviceSN:    sn,
-			StartDateAt: startAt,
-			EndDateAt:   finishAt,
-			Limit:       filter.Limit,
-		}
-
-		dbRs, err := s.airRepo.ReadAirIndoorValId(&queryFilter)
-
-		if err != nil {
-			return nil, err
-		}
-
-		for _, item := range dbRs {
-			rs := &AirNewNormal{
-				DeviceSn:  item.DeviceSn,
-				Message:   readMsg(item.Message),
-				Timestamp: item.Timestamp.Local(),
-			}
-
-			result = append(result, rs)
-		}
-
+	if err != nil {
+		return nil, err
 	}
 
-	airReport := []*AirReport{}
-	if len(result) > 0 {
-
-		for _, k := range result {
-
-			air := &AirReport{
-				DeviceSn: k.DeviceSn,
-				IndVal:   IndoorVal{Power: k.Message.Power, Temp: k.Message.Temp, RoomTemp: k.Message.RoomTemp, RhSet: k.Message.RhSet, RhRoom: k.Message.RhRoom},
-				TimeAt:   k.Timestamp,
-			}
-			airReport = append(airReport, air)
+	airReport := []*AirNewNormal{}
+	for _, item := range dbRs {
+		air := &AirNewNormal{
+			DeviceSn:  item.DeviceSn,
+			Message:   readMsg(item.Message),
+			Timestamp: item.Timestamp,
 		}
+		airReport = append(airReport, air)
 
 	}
-
 	return airReport, nil
+
+	//airReport := []*AirReport{}
+	/*
+		if len(result) > 0 {
+
+			for _, k := range result {
+
+				air := &AirReport{
+					DeviceSn: k.DeviceSn,
+					IndVal:   IndoorVal{Power: k.Message.Power, Temp: k.Message.Temp, RoomTemp: k.Message.RoomTemp, RhSet: k.Message.RhSet, RhRoom: k.Message.RhRoom},
+					TimeAt:   k.Timestamp,
+				}
+				airReport = append(airReport, air)
+			}
+
+		}
+
+		return airReport, nil
+
+	*/
 }
 func (s *airThingsService) AirThingsById2(sn string, filter *Filter) ([]*AirInGrafana, error) {
 
@@ -249,8 +242,13 @@ func readMsg(msg string) *IndoorInfo {
 		return nil
 	}
 
-	reg1000 := airDecode["data"].(map[string]interface{})["reg1000"].(string)
-	acVal := utils.NewGetAcVal(reg1000)
+	//reg1000 := airDecode["data"].(map[string]interface{})["reg1000"].(string)
+	//reg2000 := airDecode["data"].(map[string]interface{})["reg2000"].(string)
+	//log.Println("reg1000 = ", reg1000)
+	//log.Println("reg2000 = ", reg2000)
+	//log.Println("reg2000[14:18] = ", reg2000[14:18])
+	acValReq := utils.DecodeValAcShadow(airDecode)
+	acVal := utils.NewGetAcVal(acValReq)
 	ac1000 := acVal.Ac1000()
 	acData := (*IndoorInfo)(ac1000)
 

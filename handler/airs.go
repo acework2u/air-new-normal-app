@@ -47,8 +47,17 @@ func (h *AirsHandler) GetIndoorValById(c *gin.Context) {
 			StartAt:  filter.StartDate,
 			EndAt:    filter.EndDate,
 		}
+		device := c.Param("id")
+		log.Println("In handler Device :")
+		log.Println(device)
+		if filters.DeviceSn == "" {
+			filters.DeviceSn = device
+		}
 
-		result, err := h.airIot.AirThingsById(filter.DeviceSn, filters)
+		log.Println("Filter :")
+		log.Println(filters)
+
+		result, err := h.airIot.AirThingsById(device, filters)
 		if err != nil {
 			h.resp.BadRequest(c, err.Error())
 			return
@@ -123,7 +132,7 @@ func (h *AirsHandler) GetAirToGrafanaMonitor(c *gin.Context) {
 		case "1000":
 
 			rsRaw := []*airs.AirInGrafana{}
-			rsDisplay := []*airs.AirReport{}
+			//rsDisplay := []*airs.AirReport{}
 
 			var er error
 
@@ -136,7 +145,8 @@ func (h *AirsHandler) GetAirToGrafanaMonitor(c *gin.Context) {
 				h.resp.Success(c, rsRaw)
 				return
 			} else {
-				rsDisplay, er = h.airIot.AirThingsById(filter.DeviceSn, filter)
+				rsDisplay, er := h.airIot.AirThingsById(filter.DeviceSn, filter)
+
 				if er != nil {
 					h.resp.BadRequest(c, er.Error())
 					return

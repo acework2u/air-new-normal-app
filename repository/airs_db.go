@@ -5,6 +5,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"log"
 )
 
 type AirRepositoryDB struct {
@@ -50,8 +51,35 @@ func (r *AirRepositoryDB) ReadAirIndoorValId(filter *Filter) ([]*AirRawData, err
 	stDate := primitive.NewDateTimeFromTime(filter.StartDateAt)
 	endDate := primitive.NewDateTimeFromTime(filter.EndDateAt.AddDate(0, 0, 1))
 
-	matchStage := bson.D{{"$match", bson.D{{"device_sn", filter.DeviceSN}, {"$and", []bson.M{bson.M{"timestamp": bson.M{"$gte": stDate}}, bson.M{"timestamp": bson.M{"$lt": endDate}}}}}}}
+	_ = stDate
+	_ = endDate
+
+	//matchStage := bson.D{{"$match", bson.D{{"device_sn", filter.DeviceSN}, {"$and", []bson.M{bson.M{"timestamp": bson.M{"$gte": stDate}}, bson.M{"timestamp": bson.M{"$lt": endDate}}}}}}}
+	// match stage
+	matchStage := bson.D{{"$match", bson.M{"device_sn": filter.DeviceSN}}}
+
+	if filter.StartDateAt.IsZero() && filter.EndDateAt.IsZero() {
+		matchStage = bson.D{{"$match", bson.M{"device_sn": filter.DeviceSN}}}
+	}
+	if !filter.StartDateAt.IsZero() && filter.EndDateAt.IsZero() {
+		matchStage = bson.D{{"$match", bson.M{"device_sn": filter.DeviceSN, "timestamp": bson.M{"$gte": stDate}}}}
+	}
+	if filter.StartDateAt.IsZero() && !filter.EndDateAt.IsZero() {
+		matchStage = bson.D{{"$match", bson.M{"device_sn": filter.DeviceSN, "timestamp": bson.M{"$lt": endDate}}}}
+	}
+	if !filter.StartDateAt.IsZero() && !filter.EndDateAt.IsZero() {
+		matchStage = bson.D{{"$match", bson.M{"device_sn": filter.DeviceSN, "timestamp": bson.M{"$gte": stDate, "$lt": endDate}}}}
+	}
+
 	sortStage := bson.D{{"$sort", bson.M{"timestamp": -1}}}
+
+	log.Println("matchStage")
+	log.Println(matchStage)
+
+	if filter.Limit == 0 {
+		filter.Limit = 1000
+	}
+	// limit stage
 
 	var cursor *mongo.Cursor
 	var ok error
@@ -68,17 +96,9 @@ func (r *AirRepositoryDB) ReadAirIndoorValId(filter *Filter) ([]*AirRawData, err
 			return nil, ok
 		}
 	}
-
-	//log.Println(matchStage)
-
-	//cursor, err := r.airsThingsCollection.Aggregate(r.ctx, mongo.Pipeline{matchStage, sortStage})
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	defer cursor.Close(r.ctx)
-	//result := bson.M{}
-	//cursor.All(r.ctx, &result)
+
+	// print result
 	devices := []*AirRawData{}
 	for cursor.Next(r.ctx) {
 		airVal := &AirRawData{}
@@ -88,5 +108,6 @@ func (r *AirRepositoryDB) ReadAirIndoorValId(filter *Filter) ([]*AirRawData, err
 		}
 		devices = append(devices, airVal)
 	}
+
 	return devices, nil
 }

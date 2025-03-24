@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"strings"
@@ -31,14 +32,15 @@ type fanSpeedFunc func(val int) string
 type louverFunc func(val int) string
 
 type AC1000 struct {
-	Power    powerFunc       `json:"power"`
-	Mode     modeFunc        `json:"mode"`
-	Temp     tempFunc        `json:"temp"`
-	RoomTemp roomTempFunc    `json:"roomTemp"`
-	SetRh    indFunc[[]byte] `json:"setRh"`
-	RoomRh   indFunc[[]byte] `json:"roomRh"`
-	FanSpeed fanSpeedFunc    `json:"fanSpeed"`
-	Louver   louverFunc      `json:"louver"`
+	Power    powerFunc        `json:"power"`
+	Mode     modeFunc         `json:"mode"`
+	Temp     tempFunc         `json:"temp"`
+	RoomTemp roomTempFunc     `json:"roomTemp"`
+	SetRh    indFunc[[]byte]  `json:"setRh"`
+	RoomRh   indFunc[[]byte]  `json:"roomRh"`
+	FanSpeed fanSpeedFunc     `json:"fanSpeed"`
+	Louver   louverFunc       `json:"louver"`
+	Pm25     pm25Func[[]byte] `json:"pm25"`
 }
 
 // Indoor value register2000
@@ -60,6 +62,7 @@ type oduErrorFunc func(val []byte) int
 type oduFunc[T int | []byte] func(val T) int
 type indFunc[T int | []byte] func(val T) int
 
+type pm25Func[T int | []byte] func(val T) int
 type AC2000 struct {
 	MidCoilTemp   midCoilFunc       `json:"midCoilTemp"`
 	OutletTemp    outletFunc        `json:"outletTemp"`
@@ -99,6 +102,7 @@ type IndoorInfo struct {
 	RhRoom   int    `json:"RhRoom"`
 	FanSpeed string `json:"fanSpeed"`
 	Louver   string `json:"louver"`
+	Pm25     int    `json:"pm25"`
 }
 
 type Ind2000 struct {
@@ -141,14 +145,50 @@ type AcStr struct {
 	reg3000 []byte
 	reg4000 []byte
 }
+type AcValReq struct {
+	Reg1000 string
+	Reg2000 string
+	Reg3000 string
+	Reg4000 string
+}
 
-func NewGetAcVal(reg1000 string) AcValue {
-	data, err := hex.DecodeString(reg1000)
+func DecodeValAcShadow(valShadow jwt.MapClaims) *AcValReq {
+	regis1000 := valShadow["data"].(map[string]interface{})["reg1000"].(string)
+	regis2000 := valShadow["data"].(map[string]interface{})["reg2000"].(string)
+	regis3000 := valShadow["data"].(map[string]interface{})["reg3000"].(string)
+	regis4000 := valShadow["data"].(map[string]interface{})["reg4000"].(string)
+
+	//log.Printf("Reg1000 = %v\n", regis1000)
+	//log.Printf("Reg2000 = %v\n", regis2000)
+	//log.Printf("Reg3000 = %v\n", regis3000)
+	//log.Printf("Reg4000 = %v\n", regis4000)
+
+	acValReq := &AcValReq{
+		Reg1000: regis1000,
+		Reg2000: regis2000,
+		Reg3000: regis3000,
+		Reg4000: regis4000,
+	}
+	return acValReq
+}
+
+func NewGetAcVal(reg *AcValReq) AcValue {
+	data, err := hex.DecodeString(reg.Reg1000)
+	data2000, err := hex.DecodeString(reg.Reg2000)
+	data3000, err := hex.DecodeString(reg.Reg3000)
+	data4000, err := hex.DecodeString(reg.Reg4000)
+
+	//log.Printf("Reg1000 hex = %v\n", data)
+	//log.Printf("Reg2000 hex = %v\n", data2000)
+	//log.Printf("Reg3000 hex = %v\n", data3000)
+	//log.Printf("Reg4000 hex = %v\n", data4000)
+
 	if err != nil {
 		panic(err)
 	}
 
-	return &AcStr{reg1000: data}
+	return &AcStr{reg1000: data, reg2000: data2000, reg3000: data3000, reg4000: data4000}
+	//return &AcStr{reg1000: data}
 }
 func NewAcVal(reg string, payload string) AcValue {
 
@@ -188,6 +228,7 @@ func (ut *AcStr) Ac1000() *IndoorInfo {
 		RoomRh:   rhTemp,
 		FanSpeed: fanSpeed,
 		Louver:   louver,
+		Pm25:     pm25Val,
 	}
 	rs := &IndoorInfo{
 		Power:    ac.Power(int(ut.reg1000[1])),
@@ -198,6 +239,7 @@ func (ut *AcStr) Ac1000() *IndoorInfo {
 		RhRoom:   ac.RoomRh(ut.reg1000[10:12]),
 		FanSpeed: ac.FanSpeed(int(ut.reg1000[13])),
 		Louver:   ac.Louver(int(ut.reg1000[15])),
+		Pm25:     GetPm25Val(ut.reg2000[14:18]),
 	}
 
 	return rs
@@ -732,4 +774,39 @@ func getInt2(s []byte) int {
 		res |= int(v)
 	}
 	return res
+}
+func GetPm25Val(pmReg []byte) int {
+	if len(pmReg) == 4 {
+		//pmRaw := ByteArrayToInt(pmReg)
+		//
+		//byteHight := pmReg[0:2]
+		//byteLow := pmReg[2:4]
+		//high1 := binary.BigEndian.Uint16(byteHight)
+		//low1 := binary.BigEndian.Uint16(byteLow)
+		//log.Println(pmReg)
+		//fmt.Printf("High 1: %v %v\n", byteHight, high1)
+		//fmt.Printf("Low 1: %v %v\n", byteLow, low1)
+
+		//high := pmRaw >> 8
+		//low := pmRaw & 0xFF
+		//bytes := []byte{byte(high), byte(low)}
+		//log.Printf("Bytes: %v\n", bytes)
+		//combind := bytes[0]<<8 | bytes[1]
+		//combind2 := binary.BigEndian.Uint16(bytes)
+		//combind3 := binary.LittleEndian.Uint16(bytes)
+
+		//log.Printf("Combind: %v\n", combind)
+		//log.Printf("Combind2: %v\n", combind2)
+		//log.Printf("Combind3: %v\n", combind3)
+		combined4 := binary.BigEndian.Uint16(pmReg)
+		//log.Printf("Combind4: %v\n", combined4)
+		pm25 := 0
+		if combined4 > 0 {
+			pm25 = int(combined4 / 1000)
+		}
+		//log.Printf("PM25: %v\n", pm25)
+		return pm25
+
+	}
+	return 0
 }
