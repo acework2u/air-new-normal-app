@@ -38,6 +38,7 @@ func (h *AirsHandler) GetIndoorValById(c *gin.Context) {
 		DeviceSn  string `json:"device_sn" form:"device_sn"`
 		StartDate string `json:"start_date" form:"start_date"`
 		EndDate   string `json:"end_date" form:"end_date"`
+		Limit     int    `json:"limit" form:"limit"`
 	}{}
 
 	if c.ShouldBind(&filter) == nil {
@@ -46,6 +47,7 @@ func (h *AirsHandler) GetIndoorValById(c *gin.Context) {
 			DeviceSn: filter.DeviceSn,
 			StartAt:  filter.StartDate,
 			EndAt:    filter.EndDate,
+			Limit:    filter.Limit,
 		}
 		device := c.Param("id")
 		log.Println("In handler Device :")

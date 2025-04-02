@@ -79,6 +79,7 @@ func (r *AirRepositoryDB) ReadAirIndoorValId(filter *Filter) ([]*AirRawData, err
 	if filter.Limit == 0 {
 		filter.Limit = 1000
 	}
+	log.Printf("filter.Limit = %v\n", filter.Limit)
 	// limit stage
 
 	var cursor *mongo.Cursor
